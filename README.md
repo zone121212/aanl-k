@@ -1,0 +1,2 @@
+# aanl-k
+konum
